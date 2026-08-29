@@ -1,0 +1,27 @@
+{
+  "model_name": "real_weekly",
+  "split_method": "Leave-One-Out CV (11 folds)",
+  "train_mae_pkr": 19.59,
+  "train_r2": 0.889,
+  "test_mae_pkr": 39.56,
+  "test_rmse_pkr": 53.19,
+  "test_r2": 0.535,
+  "avg_price_scale_pkr": 126.9,
+  "test_mae_pct_of_scale": 31.2,
+  "diagnosis": "OVERFITTING - train error test error se bohot kam hai (gap ~16% of price scale), model train data ratta laga raha hai",
+  "n_rows_used": 11,
+  "features": [
+    "temperature_c",
+    "rainfall_mm",
+    "humidity_percent",
+    "price_lag1",
+    "price_roll_mean_3"
+  ],
+  "feature_importance": {
+    "temperature_c": 7.0656,
+    "humidity_percent": 3.7169,
+    "price_lag1": 0.3467,
+    "rainfall_mm": 0.2678,
+    "price_roll_mean_3": 0.0704
+  }
+}

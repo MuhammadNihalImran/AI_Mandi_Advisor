@@ -1,0 +1,14 @@
+# ---------------------------------------------------------------------------
+# AI Mandi Advisor — Dev / testing dependencies (pinned versions)
+# ---------------------------------------------------------------------------
+# Install:  pip install -r requirements-dev.txt
+# (includes production deps automatically via -r requirements.txt)
+
+-r requirements.txt
+
+# ── Testing ──
+pytest==9.1.1
+pytest-cov==7.1.0
+pluggy==1.6.0
+iniconfig==2.3.0
+coverage==7.15.4
