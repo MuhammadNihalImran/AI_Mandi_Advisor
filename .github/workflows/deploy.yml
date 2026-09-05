@@ -1,0 +1,53 @@
+name: Build & Deploy to GHCR
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  # GHCR requires lowercase owner/repo
+  REGISTRY: ghcr.io
+  IMAGE_NAME: muhammadnihalimran/ai_mandi_advisor
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      # ── Checkout source ──────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── Log in to GitHub Container Registry ──────────────────
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # ── Build Docker image from server/Dockerfile ───────────
+      - name: Build Docker image
+        run: |
+          docker build \
+            -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest \
+            -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            -f server/Dockerfile \
+            server/
+
+      # ── Push image to GHCR ──────────────────────────────────
+      - name: Push Docker image to GHCR
+        run: |
+          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+      # ── Notify Azure Web App to pull the new image ──────────
+      - name: Trigger Azure Web App deployment
+        run: |
+          curl -X POST "${{ secrets.AZURE_WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -d '{"status": "deploy", "image": "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"}'
