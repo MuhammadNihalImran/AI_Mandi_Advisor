@@ -37,7 +37,6 @@ export default function PricePrediction({ inputs, onPrediction }) {
     inputs.last_price,
   ]);
 
-  // Delta class
   let deltaClass = "delta flat";
   let deltaText = "lagbhag same";
   if (delta !== null) {
@@ -50,21 +49,37 @@ export default function PricePrediction({ inputs, onPrediction }) {
     }
   }
 
+  const priceText =
+    loading ? null : predicted !== null ? `Rs ${predicted.toLocaleString()}` : null;
+
   return (
     <>
-      <div className="ticket">
-        <div>
-          <div className="label">Predicted rate (agla)</div>
-          <div className="price">
-            Rs {loading ? "..." : predicted !== null ? predicted.toLocaleString() : "--"}{" "}
-            <small>/kg</small>
+      <div className="ticker">
+        {loading ? (
+          <div className="ticker-loading">Rate calculate ho raha hai...</div>
+        ) : priceText ? (
+          <div className="ticker-track">
+            {[0, 1].map((i) => (
+              <span className="ticker-item" key={i}>
+                <span className="price">{priceText}</span>
+                <span className="unit">/kg</span>
+              </span>
+            ))}
           </div>
-          <div className="ml-note">
-            Ridge regression &middot; trained: 11 real mandi weeks (Faisalabad)
-          </div>
-        </div>
-        <div className={deltaClass}>{predicted !== null ? deltaText : ""}</div>
+        ) : (
+          <div className="ticker-waiting">Rate board taiyar hai</div>
+        )}
       </div>
+
+      {priceText && (
+        <div className="ticker-meta">
+          <span className="ml-note">
+            Ridge regression, trained: 11 real mandi weeks (Faisalabad)
+          </span>
+          <span className={deltaClass}>{deltaText}</span>
+        </div>
+      )}
+
       {error && <div className="error-text">{error}</div>}
     </>
   );

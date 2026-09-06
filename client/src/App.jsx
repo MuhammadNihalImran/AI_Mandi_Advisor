@@ -15,17 +15,14 @@ export default function App() {
 
   return (
     <div className="board">
-      <p className="eyebrow">Faisalabad mandi &middot; hybrid advisory</p>
-      <h1>Tomato rate board</h1>
+      <h1>Tomato Rate Board</h1>
       <p className="subtitle">
         Chhota regression model (Rs/kg) + AI advisory layer — weather aur
         recent price se agla estimate aur farmer ke liye seedha jawab.
+        Faisalabad mandi ke liye.
       </p>
 
-      <WeatherInputs
-        inputs={inputs}
-        setInputs={setInputs}
-      />
+      <WeatherInputs inputs={inputs} setInputs={setInputs} />
 
       <PricePrediction inputs={inputs} />
 
@@ -33,19 +30,16 @@ export default function App() {
 
       <p className="foot">
         ML: 5-feature Ridge model (temp, rainfall, humidity, lag-price,
-        rolling avg) &middot; test R&sup2; 0.54 (Leave-One-Out CV) &middot;
+        rolling avg), test R² 0.54 (Leave-One-Out CV),
         11 samples se train — chhoti dataset hai, interval ke tor pe lein,
         exact guarantee nahi.
-        <br />
-        Tool use: "Live weather fetch" button Open-Meteo forecast API se
+        {" "}Tool use: "Live weather fetch" button Open-Meteo forecast API se
         Faisalabad ka abhi ka mausam khud fetch karta hai.
-        <br />
-        RAG: advice maangne pe, system 13 real historical mandi weeks mein
+        {" "}RAG: advice maangne pe, system 13 real historical mandi weeks mein
         se 3 sabse "similar weather" wale din retrieve karta hai
         (nearest-neighbour), aur unhe AI ko context ke tor pe deta hai —
         grounding ke liye, hallucination kam karne.
-        <br />
-        AI advisory layer: ML ke number + retrieved history ko context ke
+        {" "}AI advisory layer: ML ke number + retrieved history ko context ke
         sath farmer-friendly recommendation mein convert karta hai — khud
         price generate nahi karta.
       </p>

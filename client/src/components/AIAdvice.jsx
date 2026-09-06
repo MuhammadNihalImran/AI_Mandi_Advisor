@@ -53,10 +53,9 @@ export default function AIAdvice({ inputs }) {
               <div className="rag-label">Retrieved similar days (RAG)</div>
               <div className="rag-list">
                 {history.map((day, i) => (
-                  <span key={i}>
-                    {day.date} &middot; {day.temperature}&deg;C, {day.rainfall}
-                    mm rain, {day.humidity}% hum &rarr; Rs {day.price}/kg
-                    {i < history.length - 1 && <br />}
+                  <span className="stamp" key={i}>
+                    {day.date}: {day.temperature}&deg;C, {day.rainfall}mm rain,{" "}
+                    {day.humidity}% hum &rarr; Rs {day.price}/kg
                   </span>
                 ))}
               </div>

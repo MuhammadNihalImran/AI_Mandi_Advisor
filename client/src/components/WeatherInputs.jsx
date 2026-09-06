@@ -38,8 +38,10 @@ export default function WeatherInputs({ inputs, setInputs, onWeatherFetched }) {
       <div className="inputs-grid">
         <div className="field">
           <label>
-            Temperature{" "}
-            <span className="val">{inputs.temperature}&deg;C</span>
+            <span className="badge" title={inputs.temperature + "°C"}>
+              ☀️
+            </span>
+            Temperature
           </label>
           <input
             type="range"
@@ -49,14 +51,17 @@ export default function WeatherInputs({ inputs, setInputs, onWeatherFetched }) {
             value={inputs.temperature}
             onChange={(e) => handleChange("temperature", e.target.value)}
           />
+          <span className="field-value">
+            {inputs.temperature}&deg;C
+          </span>
         </div>
 
         <div className="field">
           <label>
-            Rainfall{" "}
-            <span className="val">
-              {inputs.rainfall.toFixed(1)} mm
+            <span className="badge" title={inputs.rainfall.toFixed(1) + " mm"}>
+              🌧️
             </span>
+            Rainfall
           </label>
           <input
             type="range"
@@ -66,11 +71,15 @@ export default function WeatherInputs({ inputs, setInputs, onWeatherFetched }) {
             value={inputs.rainfall}
             onChange={(e) => handleChange("rainfall", e.target.value)}
           />
+          <span className="field-value">
+            {inputs.rainfall.toFixed(1)} mm
+          </span>
         </div>
 
         <div className="field">
           <label>
-            Humidity <span className="val">{inputs.humidity}%</span>
+            <span className="badge" title={inputs.humidity + "%"}>💧</span>
+            Humidity
           </label>
           <input
             type="range"
@@ -80,6 +89,9 @@ export default function WeatherInputs({ inputs, setInputs, onWeatherFetched }) {
             value={inputs.humidity}
             onChange={(e) => handleChange("humidity", e.target.value)}
           />
+          <span className="field-value">
+            {inputs.humidity}%
+          </span>
         </div>
 
         <div className="field">
