@@ -4,9 +4,11 @@ from types import SimpleNamespace
 from unittest.mock import patch, MagicMock
 
 import httpx
-from groq import APIStatusError
+import pytest
+from groq import APIConnectionError, APIStatusError
 
 import app.services.ai_advisor as ai_mod
+from app.config import get_settings
 from app.services.ai_advisor import (
     _format_history_lines,
     _get_client,
@@ -212,6 +214,18 @@ class TestGetClient:
         finally:
             ai_mod._client = old
 
+    def test_client_created_with_timeout(self):
+        """Groq client must use the configured timeout (not the ~10 min SDK default)."""
+        old = ai_mod._client
+        try:
+            ai_mod._client = None
+            with patch("app.services.ai_advisor.Groq") as MockGroq:
+                _get_client()
+                kwargs = MockGroq.call_args.kwargs
+                assert kwargs["timeout"] == get_settings().groq_timeout_seconds
+        finally:
+            ai_mod._client = old
+
 
 # ---------------------------------------------------------------------------
 # _format_history_lines() with dataclass-like objects (lines 64-70)
@@ -269,6 +283,43 @@ def _make_api_status_error(status_code: int, message: str = "err"):
     request = httpx.Request("POST", "https://api.groq.com/openai/v1/chat/completions")
     response = httpx.Response(status_code, request=request)
     return APIStatusError(message=message, response=response, body=None)
+
+
+def _make_connection_error(message: str = "Connection error.") -> APIConnectionError:
+    """Build a real APIConnectionError (network failure / timeout)."""
+    request = httpx.Request("POST", "https://api.groq.com/openai/v1/chat/completions")
+    return APIConnectionError(message=message, request=request)
+
+
+# ---------------------------------------------------------------------------
+# Network failures to Groq (timeout / DNS / connection refused)
+# ---------------------------------------------------------------------------
+class TestConnectionError:
+    @patch("app.services.ai_advisor._get_client")
+    def test_connection_error_raises_unavailable(self, mock_get_client):
+        """Network failure → RuntimeError (router maps to 503, not a 500 crash)."""
+        mock_client = MagicMock()
+        mock_client.chat.completions.create.side_effect = _make_connection_error(
+            "Connection timed out."
+        )
+        mock_get_client.return_value = mock_client
+
+        with pytest.raises(RuntimeError, match="temporarily unavailable"):
+            generate_advice(500, 246, 33, 0.5, 65, [])
+
+    @patch("app.services.ai_advisor._get_client")
+    def test_connection_error_returns_503(self, mock_get_client, client):
+        """Router must translate connection errors into a clean 503."""
+        mock_client = MagicMock()
+        mock_client.chat.completions.create.side_effect = _make_connection_error()
+        mock_get_client.return_value = mock_client
+
+        resp = client.post(URL, json=VALID_BODY)
+        assert resp.status_code == 503
+        body = resp.json()
+        assert "temporarily unavailable" in body["advice"]
+        # Prediction data should still be present in the degraded response
+        assert "predicted_price" in body
 
 
 class TestModelFallback:

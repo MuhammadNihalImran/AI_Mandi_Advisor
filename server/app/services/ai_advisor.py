@@ -11,7 +11,7 @@ import re
 import time
 from typing import Any
 
-from groq import Groq, APIStatusError
+from groq import Groq, APIConnectionError, APIStatusError
 
 from app.config import get_settings
 
@@ -27,7 +27,12 @@ _client: Groq | None = None
 def _get_client() -> Groq:
     global _client
     if _client is None:
-        _client = Groq(api_key=settings.groq_api_key)
+        # Explicit timeout – the SDK default (~10 min) would let a hung
+        # connection stall advice requests indefinitely.
+        _client = Groq(
+            api_key=settings.groq_api_key,
+            timeout=settings.groq_timeout_seconds,
+        )
     return _client
 
 
@@ -102,9 +107,10 @@ def generate_advice(
         Advice text string (Roman Urdu).
 
     Raises:
-        RateLimitError: When Groq returns 429 – caller should translate
-                        into a user-friendly message.
-        Exception:      Any other API / network error.
+        RuntimeError:    429 rate limit, or service unavailable (network
+                         failure / all models down) – the advice router
+                         maps these to HTTP 429 / 503.
+        APIStatusError:  Any other Groq API error (re-raised as-is).
     """
     rag_lines = _format_history_lines(retrieved_history)
 
@@ -166,6 +172,17 @@ def generate_advice(
             )
             return _strip_thinking_tags(advice.strip())
 
+        except APIConnectionError as exc:
+            # Network failure / timeout – not model-specific, so retrying
+            # the fallback model would just repeat the wait. Fail fast;
+            # the advice router maps this to a 503.
+            logger.error(
+                "groq_connection_error",
+                extra={"model": model_id, "error_detail": str(exc)},
+            )
+            raise RuntimeError(
+                "AI advice service temporarily unavailable. Try again later."
+            ) from exc
         except APIStatusError as exc:
             if exc.status_code == 429:
                 logger.warning(

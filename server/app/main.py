@@ -84,7 +84,9 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
-    allow_credentials=True,
+    # This API uses no cookies/auth, so credentialed cross-origin requests
+    # must be rejected (also the only safe pairing with "*" origins).
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )

@@ -8,6 +8,11 @@ services:
       - "8000:8000"
     env_file:
       - .env
+    environment:
+      # Keep the SQLite file inside the ./data volume – the in-code default
+      # (./mandi.db) lives on the container filesystem and is lost whenever
+      # the container is re-created.
+      DATABASE_URL: sqlite:///./data/mandi.db
     volumes:
       # Persist SQLite database across restarts
       - ./data:/app/data

@@ -17,9 +17,12 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["advice"])
 
 
+# Sync on purpose: the Groq SDK and SQLAlchemy calls below are blocking;
+# a sync endpoint runs in FastAPI's threadpool instead of stalling the
+# event loop for the duration of each LLM call.
 @router.post("/advice", response_model=AdviceResponse)
 @limiter.limit("20/15minutes")
-async def get_advice(
+def get_advice(
     request: Request,
     body: AdviceRequest,
     db: Session = Depends(get_db),
@@ -72,8 +75,9 @@ async def get_advice(
             return JSONResponse(
                 status_code=429,
                 content={
-                    "predicted_price": predicted_price,
-                    "delta_pct": delta_pct,
+                    # predict_price returns Decimal – JSON needs float
+                    "predicted_price": float(predicted_price),
+                    "delta_pct": float(delta_pct),
                     "retrieved_history": [h.model_dump() for h in history_response],
                     "advice": msg,
                 },
@@ -82,8 +86,9 @@ async def get_advice(
         return JSONResponse(
             status_code=503,
             content={
-                "predicted_price": predicted_price,
-                "delta_pct": delta_pct,
+                # predict_price returns Decimal – JSON needs float
+                "predicted_price": float(predicted_price),
+                "delta_pct": float(delta_pct),
                 "retrieved_history": [h.model_dump() for h in history_response],
                 "advice": msg,
             },

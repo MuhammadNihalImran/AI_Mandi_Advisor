@@ -4,25 +4,33 @@ Ridge regression price predictor.
 Mirrors the predictPrice() JS function from tomato_hybrid_advisor.html.
 Coefficients are loaded from reference/metrics_real_weekly.json at import
 time; if the file is unavailable, hardcoded fallback values are used.
+
+All price math uses ``decimal.Decimal`` (exact decimal arithmetic, no
+binary float), and final values are rounded to 2 decimal places using
+ROUND_HALF_UP (banking-standard half-away-from-zero rounding).
 """
 
 import json
 import logging
+from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
+
+# Rounding target: 2 decimal places
+_TWO_PLACES = Decimal("0.01")
 
 # ---------------------------------------------------------------------------
 # Hardcoded fallback coefficients (from trained Ridge model)
 # ---------------------------------------------------------------------------
 _COEF_FALLBACK = {
-    "temp": 7.0656269,
-    "rain": -0.26778793,
-    "hum": 3.71686402,
-    "lag1": 0.34666444,
-    "roll3": -0.07041521,
+    "temp": Decimal("7.0656269"),
+    "rain": Decimal("-0.26778793"),
+    "hum": Decimal("3.71686402"),
+    "lag1": Decimal("0.34666444"),
+    "roll3": Decimal("-0.07041521"),
 }
-_INTERCEPT_FALLBACK = -323.4013482343068
+_INTERCEPT_FALLBACK = Decimal("-323.4013482343068")
 
 # ---------------------------------------------------------------------------
 # Try loading from metrics_real_weekly.json
@@ -30,10 +38,10 @@ _INTERCEPT_FALLBACK = -323.4013482343068
 _METRICS_PATH = Path(__file__).resolve().parents[3] / "reference" / "metrics_real_weekly.json"
 
 
-def _load_coefficients() -> tuple[dict[str, float], float]:
+def _load_coefficients() -> tuple[dict[str, Decimal], Decimal]:
     """
     Attempt to read feature_importance from metrics_real_weekly.json.
-    Returns (coefficients_dict, intercept).
+    Returns (coefficients_dict, intercept) as Decimals.
 
     The JSON stores absolute importance values without signs, so we merge
     the signs from the known fallback and override magnitudes when available.
@@ -55,10 +63,13 @@ def _load_coefficients() -> tuple[dict[str, float], float]:
             "price_roll_mean_3": ("roll3", -1),
         }
 
-        coefs: dict[str, float] = {}
+        coefs: dict[str, Decimal] = {}
         for json_key, (name, sign) in sign_map.items():
             if json_key in importance:
-                coefs[name] = sign * abs(importance[json_key])
+                # Convert via str() so the JSON number's decimal form is
+                # kept exactly (no binary float artifacts).
+                magnitude = Decimal(str(abs(importance[json_key])))
+                coefs[name] = magnitude if sign == 1 else -magnitude
             else:
                 coefs[name] = _COEF_FALLBACK[name]
 
@@ -77,7 +88,18 @@ COEF, INTERCEPT = _load_coefficients()
 # Prediction (matches JS predictPrice logic exactly)
 # ---------------------------------------------------------------------------
 
-_MIN_PRICE = 10.0  # price floor, same as JS: Math.max(pred, 10)
+_MIN_PRICE = Decimal("10")  # price floor, same as JS: Math.max(pred, 10)
+
+
+def _dec(value) -> Decimal:
+    """
+    Convert an incoming number (float/int/Decimal) to Decimal via its
+    string form, so values like 0.1 stay exact instead of inheriting
+    binary float representation errors.
+    """
+    if isinstance(value, Decimal):
+        return value
+    return Decimal(str(value))
 
 
 def predict_price(
@@ -85,9 +107,13 @@ def predict_price(
     rainfall: float,
     humidity: float,
     last_price: float,
-) -> tuple[float, float]:
+) -> tuple[Decimal, Decimal]:
     """
     Predict next mandi price using Ridge regression.
+
+    All arithmetic is done with ``decimal.Decimal``; the final price and
+    delta percentage are rounded to 2 decimal places using ROUND_HALF_UP
+    (banking-standard rounding).
 
     Parameters match the JS predictPrice() function:
         pred = INTERCEPT + temp*COEF + rain*COEF + hum*COEF + lag1*COEF + roll3*COEF
@@ -95,28 +121,36 @@ def predict_price(
 
     Returns:
         (predicted_price, delta_pct)
-        predicted_price: rounded to nearest integer, floored at 10 PKR
-        delta_pct: percentage change from last_price
+        predicted_price: Decimal rounded to 2 decimal places (ROUND_HALF_UP),
+                         floored at 10 PKR
+        delta_pct: Decimal percentage change from last_price,
+                   2 decimal places (ROUND_HALF_UP)
     """
-    roll3 = last_price  # same simplification as JS widget
+    temp = _dec(temperature)
+    rain = _dec(rainfall)
+    hum = _dec(humidity)
+    lp = _dec(last_price)
+    roll3 = lp  # same simplification as JS widget
 
     pred = (
         INTERCEPT
-        + COEF["temp"] * temperature
-        + COEF["rain"] * rainfall
-        + COEF["hum"] * humidity
-        + COEF["lag1"] * last_price
+        + COEF["temp"] * temp
+        + COEF["rain"] * rain
+        + COEF["hum"] * hum
+        + COEF["lag1"] * lp
         + COEF["roll3"] * roll3
     )
 
     # Price floor sanity check (mirrors JS: Math.max(pred, 10))
     pred = max(pred, _MIN_PRICE)
-    pred = round(pred)
+    pred = pred.quantize(_TWO_PLACES, rounding=ROUND_HALF_UP)
 
     # Delta percentage
-    if last_price != 0:
-        delta_pct = round((pred - last_price) / last_price * 100, 2)
+    if lp != 0:
+        delta_pct = (
+            (pred - lp) / lp * Decimal("100")
+        ).quantize(_TWO_PLACES, rounding=ROUND_HALF_UP)
     else:
-        delta_pct = 0.0
+        delta_pct = Decimal("0.00")
 
     return pred, delta_pct

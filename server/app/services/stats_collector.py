@@ -52,7 +52,8 @@ def get_snapshot() -> dict:
         min_response_time_ms, max_response_time_ms, uptime_info
     """
     with _store._lock:
-        times = _store.response_times
+        # Copy under the lock so later appends/clears can't skew the snapshot
+        times = list(_store.response_times)
         count = _store.total_requests
         errors = _store.total_errors
 
