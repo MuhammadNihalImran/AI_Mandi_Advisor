@@ -53,7 +53,7 @@ except ImportError:
 # ---------------------------------------------------------------------------
 # Test call
 # ---------------------------------------------------------------------------
-MODEL = "qwen/qwen3.6-27b"
+MODEL = "qwen/qwen3.8-27b"
 FALLBACK = "openai/gpt-oss-20b"
 SYSTEM = "Tum ek Pakistani mandi price advisor ho."
 USER = "Aaj temperature 33C hai, rate Rs 246/kg hai. Bechna chahiye ya rukna? 2 line mein jawab do."
@@ -63,7 +63,7 @@ client = Groq(api_key=api_key)
 for model_id in (MODEL, FALLBACK):
     print(f"Testing model: {model_id}")
     print(f"  reasoning_format = hidden")
-    print(f"  reasoning_effort = none")
+    print(f"  reasoning_effort = low")
     print()
 
     try:
@@ -77,7 +77,7 @@ for model_id in (MODEL, FALLBACK):
             max_tokens=256,
             temperature=0.7,
             reasoning_format="hidden",
-            reasoning_effort="none",
+            reasoning_effort="low",
         )
         elapsed_ms = round((time.perf_counter() - t0) * 1000)
 

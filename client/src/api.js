@@ -8,7 +8,12 @@ async function request(path, options = {}) {
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(body.detail || body.error || `HTTP ${res.status}`);
+    // detail can be a string or {message} object (unified error shape)
+    const message =
+      typeof body.detail === "string"
+        ? body.detail
+        : body.detail?.message || body.error || `HTTP ${res.status}`;
+    throw new Error(message);
   }
   return res.json();
 }

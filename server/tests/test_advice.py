@@ -83,9 +83,9 @@ class TestAdviceHappyPath:
 
         mock_client.chat.completions.create.assert_called_once()
         call_kwargs = mock_client.chat.completions.create.call_args.kwargs
-        assert call_kwargs["model"] == "qwen/qwen3.6-27b"
+        assert call_kwargs["model"] == "qwen/qwen3.8-27b"
         assert call_kwargs["reasoning_format"] == "hidden"
-        assert call_kwargs["reasoning_effort"] == "none"
+        assert call_kwargs["reasoning_effort"] == "low"
 
     @patch("app.services.ai_advisor._get_client")
     def test_think_tags_stripped_from_response(self, mock_get_client, client):
@@ -351,7 +351,7 @@ class TestModelFallback:
         assert result == "Fallback advice: bech do."
         assert create_fn.call_count == 2
         # First call used primary model
-        assert create_fn.call_args_list[0].kwargs["model"] == "qwen/qwen3.6-27b"
+        assert create_fn.call_args_list[0].kwargs["model"] == "qwen/qwen3.8-27b"
         # Second call used fallback model
         assert create_fn.call_args_list[1].kwargs["model"] == "openai/gpt-oss-20b"
 

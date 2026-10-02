@@ -3,7 +3,7 @@ AI Advisor – Groq LLM integration for farmer advice.
 
 Follows the prompt-building logic from getFarmerAdvice() in
 tomato_hybrid_advisor.html, but runs server-side with Groq's
-available models (qwen/qwen3.6-27b primary, openai/gpt-oss-20b fallback).
+available models (qwen/qwen3.8-27b primary, openai/gpt-oss-20b fallback).
 """
 
 import logging
@@ -40,7 +40,7 @@ def _get_client() -> Groq:
 # Constants
 # ---------------------------------------------------------------------------
 # Primary model (good multilingual support for Roman Urdu)
-_MODEL = "qwen/qwen3.6-27b"
+_MODEL = "qwen/qwen3.8-27b"
 # Fallback model in case primary is unavailable
 _FALLBACK_MODEL = "openai/gpt-oss-20b"
 
@@ -152,7 +152,9 @@ def generate_advice(
                 max_tokens=512,
                 temperature=0.7,
                 reasoning_format="hidden",
-                reasoning_effort="none",
+                # Groq accepts only low/medium/high (not "none") – low
+                # keeps reasoning tokens minimal.
+                reasoning_effort="low",
             )
             groq_ms = round((time.perf_counter() - t0) * 1000, 2)
             advice = response.choices[0].message.content or ""
