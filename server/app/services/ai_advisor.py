@@ -149,7 +149,11 @@ def generate_advice(
                     {"role": "system", "content": _SYSTEM_PROMPT},
                     {"role": "user", "content": user_prompt},
                 ],
-                max_tokens=512,
+                # Reasoning models spend completion tokens on hidden
+                # reasoning before writing content – with 512 the full
+                # advice prompt was observed hitting the cap (finish_reason
+                # "length"), sometimes leaving content completely empty.
+                max_tokens=1536,
                 temperature=0.7,
                 reasoning_format="hidden",
                 # Groq accepts only low/medium/high (not "none") – low
@@ -158,6 +162,21 @@ def generate_advice(
             )
             groq_ms = round((time.perf_counter() - t0) * 1000, 2)
             advice = response.choices[0].message.content or ""
+
+            # Empty content can happen when hidden reasoning consumes the
+            # whole completion budget before any text is emitted – treat it
+            # as a failed attempt and try the fallback model.
+            if not advice.strip():
+                logger.warning(
+                    "groq_empty_content",
+                    extra={
+                        "model": model_id,
+                        "finish_reason": getattr(
+                            response.choices[0], "finish_reason", None
+                        ),
+                    },
+                )
+                continue
 
             logger.info(
                 "groq_api_success",
@@ -208,7 +227,7 @@ def generate_advice(
             )
             raise
 
-    # Both models failed
+    # Both models failed (error, 404, or empty content)
     raise RuntimeError("AI advice service temporarily unavailable. Try again later.")
 
 

@@ -382,6 +382,46 @@ class TestModelFallback:
             generate_advice(500, 246, 33, 0.5, 65, [])
         assert exc_info.value.status_code == 500
 
+    @patch("app.services.ai_advisor._get_client")
+    def test_primary_empty_content_falls_back(self, mock_get_client):
+        """Primary model returns empty content → fallback model is tried."""
+        mock_client = MagicMock()
+        create_fn = mock_client.chat.completions.create
+        create_fn.side_effect = [
+            _mock_groq_response(""),
+            _mock_groq_response("Fallback advice: bech do."),
+        ]
+        mock_get_client.return_value = mock_client
+
+        result = generate_advice(500, 246, 33, 0.5, 65, [])
+        assert result == "Fallback advice: bech do."
+        assert create_fn.call_count == 2
+        assert create_fn.call_args_list[0].kwargs["model"] == "qwen/qwen3.8-27b"
+        assert create_fn.call_args_list[1].kwargs["model"] == "openai/gpt-oss-20b"
+
+    @patch("app.services.ai_advisor._get_client")
+    def test_both_models_empty_content_raises_unavailable(self, mock_get_client):
+        """Both models return empty content → 'temporarily unavailable'."""
+        mock_client = MagicMock()
+        mock_client.chat.completions.create.return_value = _mock_groq_response("")
+        mock_get_client.return_value = mock_client
+
+        import pytest
+        with pytest.raises(RuntimeError, match="temporarily unavailable"):
+            generate_advice(500, 246, 33, 0.5, 65, [])
+
+    @patch("app.services.ai_advisor._get_client")
+    def test_max_tokens_budgets_for_reasoning(self, mock_get_client):
+        """Completion budget must cover hidden reasoning + advice text."""
+        mock_client = MagicMock()
+        mock_client.chat.completions.create.return_value = _mock_groq_response()
+        mock_get_client.return_value = mock_client
+
+        generate_advice(500, 246, 33, 0.5, 65, [])
+
+        call_kwargs = mock_client.chat.completions.create.call_args.kwargs
+        assert call_kwargs["max_tokens"] >= 1024
+
 
 # ---------------------------------------------------------------------------
 # Service unavailable via router → 503
