@@ -38,3 +38,29 @@ export function getAdvice({ temperature, rainfall, humidity, last_price }) {
     body: JSON.stringify({ temperature, rainfall, humidity, last_price }),
   });
 }
+
+/** POST /api/feedback (price-correction report) */
+export function submitFeedback({
+  temperature,
+  rainfall,
+  humidity,
+  last_price,
+  predicted_price,
+  reported_price,
+  note,
+  regenerate,
+}) {
+  return request("/api/feedback", {
+    method: "POST",
+    body: JSON.stringify({
+      temperature,
+      rainfall,
+      humidity,
+      last_price,
+      predicted_price,
+      reported_price,
+      note,
+      regenerate,
+    }),
+  });
+}

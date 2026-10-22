@@ -15,6 +15,7 @@ from app.db.database import engine, Base, SessionLocal
 from app.db.models import MandiPrice
 from app.rate_limiter import limiter
 from app.routers import history, predict, advice, weather, stats as stats_router
+from app.routers import feedback as feedback_router
 from app.services.stats_collector import record_request
 
 settings = get_settings()
@@ -170,6 +171,7 @@ app.include_router(predict.router)
 app.include_router(advice.router)
 app.include_router(weather.router)
 app.include_router(stats_router.router)
+app.include_router(feedback_router.router)
 
 
 # ---------------------------------------------------------------------------

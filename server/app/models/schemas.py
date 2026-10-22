@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from datetime import date
 from typing import Optional
 
@@ -110,3 +110,63 @@ class WeatherResponse(BaseModel):
     rainfall: float
     humidity: float
     fetched_at: str
+
+
+# ---------------------------------------------------------------------------
+# Feedback (price-correction reports) schemas
+# ---------------------------------------------------------------------------
+
+class FeedbackRequest(PredictRequest):
+    """Input for POST /api/feedback (weather fields inherited)."""
+
+    predicted_price: float = Field(
+        ..., ge=0, description="Ridge model's predicted rate (PKR/kg)"
+    )
+    reported_price: float = Field(
+        ..., gt=0, description="Farmer-reported actual rate (PKR/kg)"
+    )
+    note: Optional[str] = Field(
+        default=None,
+        max_length=300,
+        description="Optional farmer note (max 300 chars, untrusted text)",
+    )
+    regenerate: bool = Field(
+        default=False,
+        description="If true, regenerate advice via Groq using the report "
+                    "(treated as untrusted context). Ridge prediction is "
+                    "never changed.",
+    )
+
+    @field_validator("note")
+    @classmethod
+    def _normalize_note(cls, v: Optional[str]) -> Optional[str]:
+        """Trim surrounding whitespace; blank notes become None."""
+        if v is None:
+            return None
+        v = v.strip()
+        return v or None
+
+
+class FeedbackResponse(BaseModel):
+    """Output for POST /api/feedback."""
+
+    feedback_id: int
+    stored: bool
+    verified: bool
+    predicted_price: float
+    reported_price: float
+    regenerated: bool
+    advice: str = ""
+
+
+class FeedbackSummaryResponse(BaseModel):
+    """Output for GET /api/feedback/summary (read-only team review)."""
+
+    count: int
+    verified_count: int
+    unverified_count: int
+    avg_absolute_error: Optional[float] = None
+    avg_signed_error: Optional[float] = None
+    max_absolute_error: Optional[float] = None
+    plausible_low: Optional[float] = None
+    plausible_high: Optional[float] = None

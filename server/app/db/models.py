@@ -1,4 +1,14 @@
-from sqlalchemy import Column, Integer, String, Float, Date
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    Float,
+    Date,
+    DateTime,
+    Boolean,
+    Numeric,
+    func,
+)
 
 from app.db.database import Base
 
@@ -39,4 +49,44 @@ class MandiPrice(Base):
         return (
             f"<MandiPrice(id={self.id}, date={self.date}, "
             f"city='{self.city}', crop='{self.crop}', price={self.price})>"
+        )
+
+
+class PriceFeedback(Base):
+    """
+    price_feedback table – farmer price-correction reports.
+
+    Prices use ``Numeric`` so values round-trip as ``decimal.Decimal``
+    (exact decimal arithmetic on read).  ``verified`` is always False on
+    write – a human reviews/verifies reports offline; nothing here is fed
+    back into the model automatically.
+    """
+
+    __tablename__ = "price_feedback"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+
+    # Price comparison (PKR/kg, stored as Decimal via Numeric)
+    predicted_price = Column(Numeric, nullable=False)   # Ridge model output
+    reported_price = Column(Numeric, nullable=False)    # farmer's actual rate
+
+    # Farmer note (control chars stripped before write)
+    note = Column(String, nullable=True)
+
+    # Input weather snapshot the report was made under
+    temperature = Column(Float)
+    rainfall = Column(Float)
+    humidity = Column(Float)
+    last_price = Column(Float)
+
+    # Meta
+    verified = Column(Boolean, nullable=False, default=False, index=True)
+    created_at = Column(
+        DateTime, nullable=False, server_default=func.now(), index=True
+    )
+
+    def __repr__(self):
+        return (
+            f"<PriceFeedback(id={self.id}, predicted={self.predicted_price}, "
+            f"reported={self.reported_price}, verified={self.verified})>"
         )
