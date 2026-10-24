@@ -4,9 +4,10 @@
 
 - 13 weekly Faisalabad tomato rows, 2025-12-11 to 2026-08-20, from
   `faisalabad_tomato_prices_weekly.csv`.
-- SOURCE: FILL IN.
-- COLLECTED: FILL IN.
-- WHOLESALE OR RETAIL: FILL IN or "not recorded".
+- SOURCE: not recorded in this repository (provided to the project as
+  faisalabad_tomato_prices_weekly.csv)
+- COLLECTED: not recorded (latest observation is 2026-08-20)
+- WHOLESALE OR RETAIL: not recorded
 
 ## Cleaning
 
