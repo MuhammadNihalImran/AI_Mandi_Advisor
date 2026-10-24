@@ -31,14 +31,16 @@ export default function App() {
       <p className="foot">
         ML: 5-feature Ridge model (temp, rainfall, humidity, lag-price,
         rolling avg), test R² 0.54 (Leave-One-Out CV),
-        11 samples se train — chhoti dataset hai, interval ke tor pe lein,
-        exact guarantee nahi.
+        11 weekly rows pe train hai — chhoti dataset hai, interval ke tor pe
+        lein, exact guarantee nahi.
         {" "}Tool use: "Live weather fetch" button Open-Meteo forecast API se
         Faisalabad ka abhi ka mausam khud fetch karta hai.
-        {" "}RAG: advice maangne pe, system 13 real historical mandi weeks mein
-        se 3 sabse "similar weather" wale din retrieve karta hai
+        {" "}RAG: advice maangne pe, system 13 weekly observations mein se 3
+        sabse "similar weather" wale din retrieve karta hai
         (nearest-neighbour), aur unhe AI ko context ke tor pe deta hai —
         grounding ke liye, hallucination kam karne.
+        {" "}Synthetic 2024 series training ya retrieval dono mein use nahi
+        hoti.
         {" "}AI advisory layer: ML ke number + retrieved history ko context ke
         sath farmer-friendly recommendation mein convert karta hai — khud
         price generate nahi karta.

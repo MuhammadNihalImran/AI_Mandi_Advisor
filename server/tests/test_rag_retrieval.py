@@ -23,6 +23,7 @@ def _make_row(**kwargs) -> MandiPrice:
         rainfall=0.0,
         humidity=50.0,
         price=100.0,
+        data_type="real_2025_2026",
     )
     defaults.update(kwargs)
     return MandiPrice(**defaults)
@@ -195,3 +196,64 @@ class TestKLimitAndOrdering:
         )
 
         assert len(results) == 1
+
+
+# ---------------------------------------------------------------------------
+# Test 5 – Synthetic rows must never be retrieved
+# ---------------------------------------------------------------------------
+
+class TestSyntheticRowsExcluded:
+    def test_synthetic_rows_are_never_returned(self, db):
+        """Only data_type == 'real_2025_2026' rows are candidates; a synthetic
+        row that is a *perfect* weather match must still be excluded."""
+        real_rows = [
+            _make_row(date=date(2025, 12, 11), temperature=20.0, rainfall=2.0, humidity=55.0, price=90.0),
+            _make_row(date=date(2026, 1, 15), temperature=25.0, rainfall=4.0, humidity=60.0, price=110.0),
+        ]
+        # Exact match for the query below, but synthetic → must not surface.
+        synthetic_rows = [
+            _make_row(
+                date=date(2024, 6, 1), temperature=30.0, rainfall=6.0, humidity=65.0,
+                price=500.0, data_type="synthetic_2024",
+            ),
+        ]
+        _seed(db, real_rows + synthetic_rows)
+
+        results = retrieve_similar_days(
+            temperature=30.0, rainfall=6.0, humidity=65.0, k=5, db=db
+        )
+
+        # Only the 2 real rows are eligible, despite k=5 and the exact
+        # synthetic match.
+        assert len(results) == 2
+        assert all(r.date.year != 2024 for r in results)
+        assert 500.0 not in [r.price for r in results]
+
+    def test_only_synthetic_rows_returns_empty(self, db):
+        """A DB containing only synthetic rows yields no results."""
+        _seed(db, [
+            _make_row(
+                date=date(2024, 3, 1), temperature=22.0, rainfall=1.0, humidity=45.0,
+                price=80.0, data_type="synthetic_2024",
+            ),
+        ])
+
+        results = retrieve_similar_days(
+            temperature=22.0, rainfall=1.0, humidity=45.0, k=3, db=db
+        )
+        assert results == []
+
+    def test_null_data_type_rows_excluded(self, db):
+        """Rows with no data_type (NULL) are not treated as real observations."""
+        _seed(db, [
+            _make_row(date=date(2025, 12, 11), temperature=18.0, rainfall=0.0, humidity=50.0, price=70.0),
+            _make_row(date=date(2024, 1, 1), temperature=18.0, rainfall=0.0, humidity=50.0,
+                      price=999.0, data_type=None),
+        ])
+
+        results = retrieve_similar_days(
+            temperature=18.0, rainfall=0.0, humidity=50.0, k=3, db=db
+        )
+
+        assert len(results) == 1
+        assert results[0].price == 70.0

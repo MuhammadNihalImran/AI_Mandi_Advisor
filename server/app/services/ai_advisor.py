@@ -115,15 +115,14 @@ def generate_advice(
     rag_lines = _format_history_lines(retrieved_history)
 
     user_prompt = (
-        "ML MODEL KA PREDICTION (chhote statistical model se, "
-        "11 real mandi weeks pe train):\n"
+        "ML MODEL KA PREDICTION (chhote statistical model se):\n"
         f"- Aaj: temperature {temperature}C, rainfall {rainfall}mm, "
         f"humidity {humidity}%\n"
         f"- Pichla mandi rate: Rs {last_price}/kg\n"
         f"- Model ka predicted agla rate: Rs {predicted_price}/kg\n"
         "\n"
-        "RETRIEVED HISTORICAL CONTEXT (RAG - asal mandi records jo aaj "
-        "jaise weather se sabse zyada milte julte hain):\n"
+        "RETRIEVED HISTORICAL CONTEXT (RAG - weekly price records from the "
+        "13-week Faisalabad history, nearest weather match):\n"
         f"{rag_lines}\n"
         "\n"
         "Farmer ko 4-5 sentence mein seedha jawab do (roman Urdu mein):\n"

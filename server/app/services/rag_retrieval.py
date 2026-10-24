@@ -16,6 +16,11 @@ from app.db.models import MandiPrice
 
 logger = logging.getLogger(__name__)
 
+# Retrieval must only consider the real weekly observations – the synthetic
+# 2024 daily rows in mandi_prices have unrealistic weather values and would
+# skew both the feature ranges and the nearest-neighbour results.
+REAL_DATA_TYPE = "real_2025_2026"
+
 
 @dataclass
 class SimilarDay:
@@ -59,7 +64,11 @@ def retrieve_similar_days(
     if db is None:
         return []
 
-    rows: list[MandiPrice] = db.query(MandiPrice).all()
+    rows: list[MandiPrice] = (
+        db.query(MandiPrice)
+        .filter(MandiPrice.data_type == REAL_DATA_TYPE)
+        .all()
+    )
     if not rows:
         return []
 
